@@ -9,5 +9,16 @@
 */
 
 #define macro MAIN() = takes(0) returns(0) {
-    
+    //Get msg.value from tx
+    callvalue   //[msg.value]
+
+    //Store value to memory so we can return it
+    //Store at offset 0
+    0x00    //[0x00, msg.value]
+    mstore  //[]
+
+    //Return value, starting at offset 0, for 32 bytes
+    0x20    //[0x20]
+    0x00    //[0x00, 0x20]
+    return
 }
