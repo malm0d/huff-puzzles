@@ -12,6 +12,7 @@ interface SimpleStore {
     function read() external view returns (uint256);
 }
 
+//forge test -vvvv --mc SimpleStoreTest
 contract SimpleStoreTest is Test, NonMatchingSelectorHelper {
     SimpleStore public simpleStore;
 

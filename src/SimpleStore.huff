@@ -14,7 +14,59 @@
 #define function store(uint256) payable returns()
 #define function read() payable returns(uint256)
 
+//`FREE_STORAGE_POINTER` always returns an unused storage slot
+#define constant SLOT_0 = FREE_STORAGE_POINTER()
+
+//takes 0 because reading from calldata not stack
+#define macro STORE() = takes(0) returns(0) {
+    //Load function args from calldata
+    0x04                //[0x04]
+    calldataload        //[calldata @ 0x04] (first 32 bytes from fn-selector offset)
+
+    //Get pointer and store
+    [SLOT_0]                //[slot_0 pointer, calldata @ 0x04]
+    sstore
+}
+
+//returns 0 because not returning anything to stack
+#define macro READ() = takes(0) returns(0) {
+    //Read from storage
+    [SLOT_0]                //[slot_0 pointer]
+    sload                   //[value @ slot_0]
+
+    //Store to memory
+    0x00                    //[0x00, value]
+    mstore                  //[]
+
+    //Return first 32 bytes of memory
+    0x20 0x00               //[0x00, 0x20]
+    return                  //[]
+}
 
 #define macro MAIN() = takes(0) returns(0) {
-    
+    //Get function selector from calldata
+    0x00 calldataload       //[calldata @ 0x00]
+    0xE0 shr                //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Match function selector to jump label
+    dup1                    //[func_sig, func_sig]
+    __FUNC_SIG(store)       //[func_sig(store), func_sig, func_sig]
+    eq                      //[fun_sig(store) == func_sig, func_sig]
+    store                   //[store, (1 or 0), func_sig]
+    jumpi                   //[func_sig] (if 1, jump to store, else next instruction)
+
+    dup1                    //[func_sig, func_sig]
+    __FUNC_SIG(read)        //[func_sig(read), func_sig, func_sig]
+    eq                      //[fun_sig(read) == func_sig, func_sig]
+    read                    //[read, (1 or 0), func_sig]
+    jumpi                   //[func_sig] (if 1, jump to read, else next instruction)
+
+    //Revert if no match
+    0x00 dup1 revert
+
+    //Jump labels w macros
+    store:
+        STORE()
+    read:
+        READ()
 }
