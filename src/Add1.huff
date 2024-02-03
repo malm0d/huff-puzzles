@@ -11,6 +11,13 @@
 
 #define function add1(uint256) payable returns(uint256)
 
+#define macro ADD1() = takes(1) returns(1) {
+    //Load function args from calldata
+    0x04                //[0x04] (4 bytes offset due to function selector)
+    calldataload        //[calldata @ 0x04] (first 32 bytes)
+    0x01                //[0x01, calldata @ 0x04]
+    add                 //[0x01 + calldata @ 0x04]
+}
 
 #define macro MAIN() = takes(0) returns(0) {
     //Get function selector from calldata
@@ -40,12 +47,4 @@
     0x20                //[0x20]
     0x00                //[0x00, 0x20] (32 bytes)
     return              
-}
-
-#define macro ADD1() = takes(1) returns(1) {
-    //Load function args from calldata
-    0x04                //[0x04] (4 bytes offset due to function selector)
-    calldataload        //[calldata @ 0x04] (first 32 bytes)
-    0x01                //[0x01, calldata @ 0x04]
-    add                 //[0x01 + calldata @ 0x04]
 }

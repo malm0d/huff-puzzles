@@ -11,37 +11,6 @@
 
 #define function multiply(uint256, uint256) payable returns(uint256)
 
-
-#define macro MAIN() = takes(0) returns(0) {
-    //Get function selector from calldata
-    0x00                    //[0x00] (0 offset)
-    calldataload            //[calldata @ 0x00]
-    0xE0                    //[0xE0, calldata @ 0x00]
-    shr                     //[func_sig (calldata @ 0x00 >> 0xE0)]
-
-    //Check if function selector is for multiply
-    __FUNC_SIG(multiply)    //[func_sig(multiply), func_sign]
-    eq                      //[func_sig(multiply) == func_sign] => [1] or [0] (true or false)
-    multiply                //[multiply, (1 or 0)]
-    jumpi                   //[] (if 1, jump to multiply, else next instruction)
-
-    //Revert if function selector is not recognized
-    0x00 dup1 revert
-
-    //Jump label with macro
-    multiply:
-        MULTIPLY()
-
-    //Store result to memory to return
-    0x00                    //[0x00, result]
-    mstore                  //[]
-
-    //Return result
-    0x20                    //[0x20]
-    0x00                    //[0x00, 0x20] (32 bytes)
-    return
-}
-
 #define macro MULTIPLY() = takes(2) returns(1) {
     //Load function args from calldata
     0x04                    //[0x04] (4 bytes offset for function selector)
@@ -77,4 +46,34 @@
     //NOTE: We cant use the same "multiply" label as the main macro (actually why?)
     multipl:
         mul                 //[arg2 * arg1]
+}
+
+#define macro MAIN() = takes(0) returns(0) {
+    //Get function selector from calldata
+    0x00                    //[0x00] (0 offset)
+    calldataload            //[calldata @ 0x00]
+    0xE0                    //[0xE0, calldata @ 0x00]
+    shr                     //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Check if function selector is for multiply
+    __FUNC_SIG(multiply)    //[func_sig(multiply), func_sign]
+    eq                      //[func_sig(multiply) == func_sign] => [1] or [0] (true or false)
+    multiply                //[multiply, (1 or 0)]
+    jumpi                   //[] (if 1, jump to multiply, else next instruction)
+
+    //Revert if function selector is not recognized
+    0x00 dup1 revert
+
+    //Jump label with macro
+    multiply:
+        MULTIPLY()
+
+    //Store result to memory to return
+    0x00                    //[0x00, result]
+    mstore                  //[]
+
+    //Return result
+    0x20                    //[0x20]
+    0x00                    //[0x00, 0x20] (32 bytes)
+    return
 }
