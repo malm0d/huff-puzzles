@@ -13,5 +13,39 @@
 
 
 #define macro MAIN() = takes(0) returns(0) {
+    //Get function selector from calldata
+    0x00                //[0x00] (0 offset)
+    calldataload        //[calldata @ 0x00]
+    0xE0                //[0xE0, calldata @ 0x00] (224 bytes)
+    shr                 //[func_sig (calldata @ 0x00 >> 0xE0)]
 
+    //Check if function selector is for add1
+    __FUNC_SIG(add1)    //[func_sig(add1), func_sig]
+    eq                  //[func_sig(add1) == func_sig] => [1] or [0] (true or false)
+    add1                //[add1, (1 or 0)]
+    jumpi               //[] (if 1, jump to add1, else execute next instruction)
+
+    //Revert if function selector not recognized
+    0x00 0x00 revert
+
+    //Create jump label with macro
+    add1:
+        ADD1()
+
+    //Store the result to memory
+    0x00                //[0x00, result]
+    mstore              //[]
+
+    //Return value, offset 0, 32 bytes
+    0x20                //[0x20]
+    0x00                //[0x00, 0x20] (32 bytes)
+    return              
+}
+
+#define macro ADD1() = takes(1) returns(1) {
+    //Load function args from calldata
+    0x04                //[0x04] (4 bytes offset due to function selector)
+    calldataload        //[calldata @ 0x04] (first 32 bytes)
+    0x01                //[0x01, calldata @ 0x04]
+    add                 //[0x01 + calldata @ 0x04]
 }

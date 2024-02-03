@@ -10,6 +10,7 @@ interface Add1 {
     function add1(uint256 num) external pure returns (uint256);
 }
 
+//forge test -vvvv --mc Add1Test
 contract Add1Test is Test, NonMatchingSelectorHelper {
     Add1 public add1;
 

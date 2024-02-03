@@ -7,6 +7,7 @@ import {HuffDeployer} from "foundry-huff/HuffDeployer.sol";
 
 interface MyEtherBalance {}
 
+//forge test -vvvv --mc MyEtherBalanceTest
 contract MyEtherBalanceTest is Test {
     MyEtherBalance public myEtherBalance;
 

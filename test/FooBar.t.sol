@@ -12,6 +12,7 @@ interface FooBar {
     function bar() external pure returns (uint256);
 }
 
+//forge test -vvvv --mc FooBarTest
 contract FooBarTest is Test, NonMatchingSelectorHelper {
     FooBar public fooBar;
 

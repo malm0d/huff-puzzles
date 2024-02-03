@@ -7,6 +7,7 @@ import {HuffDeployer} from "foundry-huff/HuffDeployer.sol";
 
 interface CalldataLength {}
 
+//forge test -vvvv --mc CalldataLengthTest
 contract CalldataLengthTest is Test {
     CalldataLength public calldataLength;
 

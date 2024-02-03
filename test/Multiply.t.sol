@@ -10,6 +10,7 @@ interface Multiply {
     function multiply(uint256 num1, uint256 num2) external pure returns (uint256);
 }
 
+//forge test -vvvv --mc MultiplyTest
 contract MultiplyTest is Test, NonMatchingSelectorHelper {
     Multiply public multiply;
 

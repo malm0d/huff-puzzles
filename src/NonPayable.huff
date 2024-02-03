@@ -9,5 +9,32 @@
  */
 
 #define macro MAIN() = takes(0) returns(0) {
+    callvalue       //[msg.value]
+    iszero          //[(1 or 0)]
 
+    //if msg.value is not 0, revert
+    valueZeroTrue   //[jumpdest, (1 or 0)]
+    jumpi           //[] (if 1, jump to jumpdest, else execute next instruction)
+
+    0x00 0x00 revert
+
+    valueZeroTrue:
+
+    0x00 0x00 return     
 }
+
+//Do we actually need to return some result?
+//Is it ok to just put a jump label that does nothing, just for the purpose of jumpi?
+
+//With return value:
+    // valueZeroTrue:
+    //     0x01
+
+    // //Store the result to memory
+    // 0x00                //[0x00, 0x01]
+    // mstore              //[]
+
+    // //Return value, offset 0, 32 bytes
+    // 0x20                //[0x20]
+    // 0x00                //[0x00, 0x20] (32 bytes)
+    // 0x00 0x00 return     

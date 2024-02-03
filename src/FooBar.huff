@@ -16,5 +16,44 @@
 
 
 #define macro MAIN() = takes(0) returns(0) {
+    //Get function selector from calldata
+    0x00                    //[0x00] (0 offset)
+    calldataload            //[calldata @ 0x00]
+    0xE0                    //[0xE0, calldata @ 0x00]
+    shr                     //[func_sig (calldata @ 0x00 >> 0xE0)]
 
+    //Check function selector
+    dup1                    //[func_sig, func_sig]
+    __FUNC_SIG(foo)         //[func_sig(foo), func_sig, func_sig]
+    eq                      //[func_sig == func_sig(foo), func_sig] => [1] or [0] (true or false)
+    foo                     //[foo, (1 or 0), func_sig]
+    jumpi                   //[func_sig] (if 1, jump to foo, else next instruction)
+
+    __FUNC_SIG(bar)         //[func_sig(bar), func_sig]
+    eq                      //[func_sig(bar) == func_sig] => [1] or [0] (true or false)
+    bar                     //[bar, (1 or 0)]
+    jumpi                   //[] (if 1, jump to bar, else next instruction)
+
+    //Revert if function not recognized
+    0x00 dup1 revert
+
+    //jump labels w macros
+    foo:
+        FOO()
+    bar:
+        BAR()
+}
+
+#define macro FOO() = takes(0) returns(0) {
+    0x02                    //[0x02]
+    0x00                    //[0x00, 0x02]
+    mstore                  //[]
+    0x20 0x00 return
+}
+
+#define macro BAR() = takes(0) returns(0) {
+    0x03                    //[0x03]
+    0x00                    //[0x00, 0x03]
+    mstore                  //[]
+    0x20 0x00 return
 }

@@ -7,6 +7,7 @@ import {HuffDeployer} from "foundry-huff/HuffDeployer.sol";
 
 interface NonPayable {}
 
+//forge test -vvvv --mc NonPayableTest
 contract NonPayableTest is Test {
     NonPayable public nonPayable;
 
