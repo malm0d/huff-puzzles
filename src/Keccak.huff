@@ -56,4 +56,4 @@
 //It happens to be coincidental that the offset is 0x20, so `0x00 mload 0x40 add` would work. 
 //In reality this is not guaranteed with larger calldata.
 //
-// But fr, Remix is correct but why are do they give different outputs??
+//Remix is correct but fr, why are they giving different outputs??
