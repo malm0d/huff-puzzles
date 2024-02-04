@@ -7,6 +7,7 @@ import {HuffDeployer} from "foundry-huff/HuffDeployer.sol";
 
 interface RevertString {}
 
+//forge test -vvvv --mc RevertStringTest
 contract RevertStringTest is Test {
     RevertString public revertString;
 

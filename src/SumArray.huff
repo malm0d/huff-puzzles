@@ -10,7 +10,78 @@
 
 #define function sumArray(uint256[]) payable returns(uint256)
 
+#define macro SUM_ARRAY() = takes(0) returns(0) {
+    //Calldata:
+    //0x04: 0x24 -> dynamic offset, eg: 0x20
+    //0x24: 0x44 -> length: 0x<n>
+    //0x44: ...  -> [...uint256] (0x20 for each word)
+
+    //Load calldata
+    0x04 calldataload       //[offset]
+    0x24 calldataload       //[length, offset]
+
+    //check if length is 0
+    dup1 iszero             //[length == 0, length, offset]
+    lenZero                 //[lenZero, (1 or 0), length, offset]
+    jumpi                   //[length, offset] (if 1, jump to lenZero, else next instruction)
+
+    //else add up array
+    0x00 0x00               //[acc, index, length, offset] (accumulator = 0, index = 0)
+    dup4                    //[offset, acc, index, length, offset]
+    0x24                    //[0x24, offset, acc, index, length, offset]
+    add                     //[wordPointer, acc, index, length, offset] (+24 to offset to get to first word pointer in data @ 0x44)
+    swap1                   //[acc, wordPointer, index, length, offset] (starting positions for loop)
+    
+    loopSum:
+        //add wordValue to accumulator
+        dup2                //[wordPointer, acc, wordPointer, index, length, offset]
+        calldataload        //[wordValue, acc, wordPointer, index, length, offset]
+        add                 //[acc + wordValue, wordPointer, index, length, offset]
+
+        //advance wordPointer
+        dup2                //[wordPointer, acc + wordValue, wordPointer, index, length, offset]
+        0x20 add            //[nextWordPointer, acc + wordValue, wordPointer, index, length, offset]
+        swap2               //[wordPointer, acc + wordValue, nextWordPointer, index, length, offset]
+        pop                 //[acc + wordValue, nextWordPointer, index, length, offset]
+
+        //advance index
+        dup3                //[index, acc + wordValue, nextWordPointer, index, length, offset]
+        0x01 add            //[index+1, acc + wordValue, nextWordPointer, index, length, offset]
+        swap3               //[index, acc + wordValue, nextWordPointer, index+1, length, offset]
+        pop                 //[acc + wordValue, nextWordPointer, index+1, length, offset]
+
+        //check if index < length, if true continue loop
+        dup4                //[length, acc + wordValue, nextWordPointer, index+1, length, offset]
+        dup4                //[index+1, length, acc + wordValue, nextWordPointer, index+1, length, offset]
+        lt                  //[(index+1 < length), acc + wordValue, nextWordPointer, index+1, length, offset]
+        loopSum             //[loopSum, (1 or 0), acc + wordValue, nextWordPointer, index+1, length, offset]
+        jumpi               //[acc + wordValue, nextWordPointer, index+1, length, offset] (if 1, jump to loopSum, else next instruction)
+
+        //Store acc to memory & return
+        0x00 mstore     
+        0x20 0x00 return
+
+    lenZero:
+        0x00                //[0x00, length, offset]
+        mstore              //[offset]
+        0x20 0x00 return
+}
 
 #define macro MAIN() = takes(0) returns(0) {
+    //Get function selector from calldata
+    0x00 calldataload       //[calldata @ 0x00]
+    0xE0 shr                //[func_sig (calldata @ 0x00 >> 0xE0)]
 
+    //Match function selector
+    __FUNC_SIG(sumArray)    //[func_sig(sumArray), func_sig]
+    eq                      //[func_sig(sumArray) == func_sig] => [(1 or 0)]
+    sumArray                //[sumArray, (1 or 0)]
+    jumpi                   //[] (if 1, jump to jumpdest, else next instruction)
+
+    //Revert if no match
+    0x00 dup1 revert
+
+    //Jump labels w macro
+    sumArray:
+        SUM_ARRAY()
 }

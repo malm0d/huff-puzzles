@@ -7,6 +7,7 @@ import {HuffDeployer} from "foundry-huff/HuffDeployer.sol";
 
 interface RevertCustom {}
 
+//forge test -vvvv --mc RevertCustomTest
 contract RevertCustomTest is Test {
     RevertCustom public revertCustom;
 

@@ -14,5 +14,10 @@
 #define error OnlyHuff()
 
 #define macro MAIN() = takes(0) returns(0) {
-    
+    __ERROR(OnlyHuff)   //[error_selector] (4 bytes)
+    0x00                //[0x00, error_selector]
+    mstore              //[]
+
+    0x04 0x00           //[0x00, 0x04] 
+    revert
 }

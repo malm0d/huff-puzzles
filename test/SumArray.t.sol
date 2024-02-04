@@ -10,6 +10,7 @@ interface SumArray {
     function sumArray(uint256[] calldata nums) external pure returns (uint256);
 }
 
+//forge test -vvvv --mc SumArrayTest
 contract SumArrayTest is Test, NonMatchingSelectorHelper {
     SumArray public sumArray;
 

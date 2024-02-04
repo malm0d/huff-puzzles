@@ -11,7 +11,30 @@
  *  The task is to write within the `MAIN` macro below, huff code that reverts (all the time) with the string error message `Only Huff`
 */
 
+//"Only Huff" == 4f6e6c792048756666 (9 bytes)
+//Since string is dynamic array type, encoding is: dynamic offset (pointer) + length + data
+//[0x00: 0x20]: 0x20
+//[0x20: 0x40]: 0x09
+//[0x40: ...]: 0x4f6e6c792048756666
+
+//#define constant ONLY_HUFF = 0x4f6e6c792048756666
 
 #define macro MAIN() = takes(0) returns(0) {
-    
+    //Store dynamic offset
+    0x20                //[0x20]
+    0x00                //[0x00, 0x20]
+    mstore              //[]
+
+    //Store length
+    0x09                //[0x09]
+    0x20                //[0x20, 0x09]
+    mstore              //[]
+
+    //Store data
+    __RIGHTPAD(0x4f6e6c792048756666)    //[0x4f6e6c792048756666]
+    0x40                            //[0x40, 0x4f6e6c792048756666]
+    mstore                          //[]
+
+    //Revert (96 bytes)
+    0x60 0x00 revert
 }
