@@ -56,3 +56,5 @@
     bar:
         BAR()
 }
+
+//is it more efficient to have return in the main macro or individual macros?
