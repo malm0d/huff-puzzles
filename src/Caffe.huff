@@ -1,0 +1,9 @@
+//A contract that always returns 0xcaffe when called with any data
+#define macro MAIN() = takes(0) returns(0) {
+    0xcaffe         //[0xcaffe]
+    returndatasize  //[0x00, 0xcaffe]
+    mstore          //[]
+
+    0x20 returndatasize //[0x00, 0x20]
+    return
+}
