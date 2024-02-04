@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import {HuffConfig} from "foundry-huff/HuffConfig.sol";
 import {HuffDeployer} from "foundry-huff/HuffDeployer.sol";
 
+//forge test -vvvv --mc KeccakTest
 contract KeccakTest is Test {
     address public keccak;
 
@@ -12,8 +13,8 @@ contract KeccakTest is Test {
         keccak = HuffDeployer.config().deploy("Keccak");
     }
 
-    function testKeccak(bytes memory data) public 
-    {
+    function testKeccak(bytes memory data) public {
+        console2.logBytes(data);
         vm.assume(data.length < 33 && data.length > 0);
         bytes32 expectedHash = keccak256(abi.encode(data));
 

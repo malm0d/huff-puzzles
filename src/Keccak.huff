@@ -7,7 +7,51 @@
  *  The task is to write within the `MAIN` macro below, a function that returns the keccak256 of the calldata. Should handle zero calldata
  */
 
+//Calldata (bytes array)
+//[0x00: 0x20] -> dynamic offset
+//[0x20: 0x40] -> length
+//[0x40: ...] -> data
 
- #define macro MAIN() = takes(0) returns(0) {
-    
- }
+#define macro MAIN() = takes(0) returns(0) {
+    //Get calldata
+    0x00 calldataload       //[offset]
+    0x00 mstore             //[]
+
+    0x20 calldataload       //[length]
+    0x20 mstore             //[]
+
+    0x40 calldataload       //[data]
+    0x40 mstore             //[]
+
+    //sha3(offset in memory, size to read in memory)
+    //memory -> [offset (0x00: 0x20), length (0x20: 0x40), data (0x40: 0x60)]
+    0x60                    //[0x60] (96 bytes)
+    //0x20 mload 0x40 add
+    //0x00 mload 0x40 add
+    0x00                    //[0x00, 0x60]
+    sha3                    //[hash]
+
+    //store to memory and return
+    0x00 mstore
+    0x20 0x00 return
+}
+
+//In line 28-29, why does `0x20 mload 0x40 add` not work? wouldnt this be loading 0x60 on the stack?
+//Eg: if calldata is: abi.encode(0xb0e506cc0dea3eb2731ccd86cfdb8da4dafb46cfd35223cd)
+//Then we would get: (from chisel)
+//[0x00: 0x20]: 0x0000000000000000000000000000000000000000000000000000000000000020 (offset)
+//[0x20: 0x40]: 0x0000000000000000000000000000000000000000000000000000000000000020 (length)
+//[0x40: ...]:  0x0000000000000000b0e506cc0dea3eb2731ccd86cfdb8da4dafb46cfd35223cd (data)
+//
+//So if we use `0x20 mload 0x40 add`, we should get 0x60, but it doesnt work.
+//But if we use `0x00 mload 0x40 add`, we get 0x60. Why?
+//
+//After comparing outputs from chisel and remix, the calldata from remix is different from chisel:
+//[0x00: 0x20]: 0x0000000000000000000000000000000000000000000000000000000000000020 (offset)
+//[0x20: 0x40]: 0x0000000000000000000000000000000000000000000000000000000000000018 (length in hex, 24 in decimal)
+//[0x40: ...]:  0x0000000000000000b0e506cc0dea3eb2731ccd86cfdb8da4dafb46cfd35223cd (data)
+//
+//This explains why `0x20 mload 0x40 add` doesnt work, because the length is 0x18, not 0x20.
+//So this does not result in loading 0x60 onto the stack.
+//It happens to be coincidental that the offset is 0x20, so `0x00 mload 0x40 add` would work. 
+//In reality this is not guaranteed with larger calldata.
