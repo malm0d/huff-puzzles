@@ -31,9 +31,9 @@
     mstore              //[]
 
     //Store data
-    __RIGHTPAD(0x4f6e6c792048756666)    //[0x4f6e6c792048756666]
-    0x40                            //[0x40, 0x4f6e6c792048756666]
-    mstore                          //[]
+    __RIGHTPAD(0x4f6e6c792048756666)    //[0x4f6e6c792048756666000...0000] Rightpad to 32 bytes
+    0x40                                //[0x40, 0x4f6e6c792048756666000...000]
+    mstore                              //[]
 
     //Revert (96 bytes)
     0x60 0x00 revert
