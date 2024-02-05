@@ -16,7 +16,7 @@
 // This will return `620caffe3d5260203df3`.
 // So we can infer that the init code is `600a8060093d393df3` and the runtime code is `620caffe3d5260203df3`
 // Bytes for the init code is 9, and the bytes for the runtime code is 10.
-
+//
 // Mnemonic for Caffe contract / runtime code (evm.codes):
 // PUSH3 0xcaffe
 // RETURNDATASIZE   (compare: `PUSH1 0x00`, `PUSH0`)
@@ -24,21 +24,62 @@
 // PUSH1 0X20
 // RETURNDATASIZE   (compare: `PUSH1 0x00`, `PUSH0`)
 // RETURN
-
+//
 // If we replace `returndatasize` with `0x00` in src/Caffe.huff, this would be equivalent to using `PUSH0` in evm.codes
 // and not `PUSH1 0x00`. If we used `PUSH1 0x00`, the runtime code retured from evm.codes will differ from huffc.
 // huffc: 620caffe5f5260205ff3
 // evm.codes: 620caffe60005260206000f3
 // TLDR, using `0x00` is regarded as `PUSH0` and not `PUSH1 0x00`. This is why the runtime code differs.
 // In evm.codes, if we use `PUSH0` instead, we will be able to get the same runtime code as huffc.
+//
+// In Soliidty 0.8.20, PUSH0 was introduced to replace PUSH1 0x00.
+// (EIP-3855) https://eips.ethereum.org/EIPS/eip-3855
+//
+// ****Question: should we be using PUSH0 over RETURNDATASIZE???
 //-----------------------------------------------------------------------------------
 
 #define function makeContract() payable returns(address)
 
 
 #define macro MAIN() = takes(0) returns(0) {
+    //Get function selector from calldata
+    0x00 calldataload            //[calldata @ 0x00]
+    0xE0 shr                     //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Check function selector
+    __FUNC_SIG(makeContract)     //[func_sig(makeContract), func_sig]
+    eq                           //[func_sig(makeContract) == func_sig] => [(1 or 0)]
+    makeContract                 //[makeContract, (1 or 0)]
+    jumpi                        //[] (if 1 jump to makeContract, else continue)
+
+    //Revert if function is not recognized
+    0x00 dup1 revert
+
+    //Jump label
+    makeContract:
+        0x600a8060093d393df3620caffe3d5260203df3    //[runtimecode]
+        0x00                                        //[0x00, runtimecode]
+        mstore                                      //[] (Memory @ 0x00 = 0x0000...runtimecode)
+        0x13                                        //[19]
+        0x0d                                        //[13, 19]
+        0x00                                        //[0, 13, 19]
+        create                                      //[address]
+        dup1                                        //[address, address]
+        iszero                                      //[(1, 0), address]
+        deploymentFailed jumpi                      //[address] (if 1 jump to deploymentFailed, else continue)
+        0x00                                        //[0x00, address]
+        mstore                                      //[]
+        0x20 0x00 return
+
+    deploymentFailed:
+        0x00 dup1 revert
 
 }
+
+//NOTE: Data stored via `mstore` is RIGHT-ALIGNED.
+//So mstore(0x00, 0x600a806...3df3) == 00000000000000000000000000600a8060093d393df3620caffe3d5260203df3 (32 bytes)
+//Length of runtime code is 19 (0x13) bytes, so the first 13 (0x0d) bytes are 0x00.
+//create(value to send to new acc, byte offset, byte size to copy)
 
 //Creation code: 600a8060093d393df3 620caffe3d5260203df3
 //

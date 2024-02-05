@@ -9,6 +9,7 @@ interface Create {
     function makeContract() external returns (address);
 }
 
+//forge test -vvvv --mc CreateTest
 contract CreateTest is Test, NonMatchingSelectorHelper {
     Create public create;
 
