@@ -25,6 +25,65 @@
     jumpi                           //[length, offset] (if 1, jump to lenZero, else continue)     
 
     //else find max array 
+    0x00 0x00                       //[acc, index, length, offset] (accumulator = 0, index = 0)
+    dup4                            //[offset, acc, index, length, offset]
+    0x04                            //[0x04, offset, acc, index, length, offset]
+    add                             //[pointer@0x24 acc, index, length, offset] (+24 to offset to get to first word pointer in data @ 0x44)
+    swap1                           //[acc, pointer@0x24, index, length, offset] (starting positions for loop)
+
+    loopMax:
+        //advance pointer
+        dup2                            //[prevPointer, acc, prevPointer, index, length, offset]
+        0x20 add                        //[nextPointer, acc, prevPointer, index, length, offset]
+        swap2                           //[prevPointer, acc, nextPointer, index, length, offset]
+        pop                             //[acc, nextPointer, index, length, offset]
+
+        //advance index
+        dup3                            //[index, acc, wordPointer, index, length, offset]
+        0x01 add                        //[index+1, acc, wordPointer, index, length, offset]
+        swap3                           //[index, acc, wordPointer, index+1, length, offset]
+        pop                             //[acc, wordPointer, index+1, length, offset]
+
+        //get word value
+        dup2 calldataload               //[wordValue, acc, wordPointer, index+1, length, offset]
+
+        //compare wordValue with acc, if wordValue >= acc, store wordValue in memory
+        dup2 dup2                       //[wordValue, acc, wordValue, acc, wordPointer, index+1, length, offset]
+        gt                              //[wordValue > acc, wordValue, acc, wordPointer, index+1, length, offset]
+        storeVal                        //[storeVal, (1 or 0), wordValue, acc, wordPointer, index+1, length, offset]
+        jumpi                           //[wordValue, acc, wordPointer, index+1, length, offset] (if 1, jump to storeVal, else continue)
+
+        //else, pop wordValue
+        pop                             //[acc, wordPointer, index+1, length, offset]
+
+        //check if index < length, if true continue loop
+        dup4                            //[length, acc, wordPointer, index+1, length, offset]
+        dup4                            //[index+1, length, acc, wordPointer, index+1, length, offset]
+        lt                              //[(index+1 < length), acc, wordPointer, index+1, length, offset]
+        loopMax                         //[loopMax, (1 or 0), acc, wordPointer, index+1, length, offset]
+        jumpi                           //[acc, wordPointer, index+1, length, offset] (if 1, jump to loopMax, else continue)
+
+        //else, reached end of array, store and return acc, which would be the max value
+        0x00 mstore
+        0x20 0x00
+        return
+    
+    //store value to memory, at this point, stack is: [wordValue, acc, wordPointer, index+1, length, offset]
+    storeVal:
+        swap1                           //[acc, wordValue, wordPointer, index+1, length, offset]
+        pop                             //[wordValue, wordPointer, index+1, length, offset]
+
+        //check if index < length, if true continue loop
+        dup4                            //[length, wordValue, wordPointer, index+1, length, offset]
+        dup4                            //[index+1, length, wordValue, wordPointer, index+1, length, offset]
+        lt                              //[(index+1 < length), wordValue, wordPointer, index+1, length, offset]
+        loopMax                         //[loopMax, (1 or 0), wordValue, wordPointer, index+1, length, offset]
+        jumpi                           //[wordValue, wordPointer, index+1, length, offset] (if 1, jump to loopMax, else continue)
+
+        //else, this is the last word in the array, store wordValue in memory and return
+        0x00 mstore                     //memory: [0x00, wordValue] (32 bytes)
+        0x20 0x00
+        return
 
     //revert on empty array
     lenZero:

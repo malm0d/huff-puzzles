@@ -10,6 +10,7 @@ interface MaxOfArray {
     function maxOfArray(uint256[] calldata nums) external pure returns (uint256);
 }
 
+//forge test -vvvv --mc MaxOfArrayTest
 contract MaxOfArrayTest is Test, NonMatchingSelectorHelper {
     MaxOfArray public maxOfArray;
 
