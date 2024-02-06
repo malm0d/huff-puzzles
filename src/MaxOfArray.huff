@@ -10,9 +10,42 @@
 #define function maxOfArray(uint256[]) payable returns(uint256)
 
 #define macro MAX_OF_ARRAY() = takes(0) returns(0) {
-    
+    //Calldata:
+    //0x04: 0x24 -> dynamic offset, eg: 0x20
+    //0x24: 0x44 -> length: 0x<n>
+    //0x44: ...  -> [...uint256] (0x20 for each word)
+
+    //Load calldata
+    0x04 calldataload               //[offset]
+    0x24 calldataload               //[length, offset]
+
+    //Check if length is 0
+    dup1 iszero                     //[(length == 0), length, offset]
+    lenZero                         //[lenZero, (1 or 0), length, offset]
+    jumpi                           //[length, offset] (if 1, jump to lenZero, else continue)     
+
+    //else find max array 
+
+    //revert on empty array
+    lenZero:
+        0x00 dup1 revert
 }
 
 #define macro MAIN() = takes(0) returns(0) {
-   
+    //Get function selector from calldata
+    0x00 calldataload               //[calldata @ 0x00]
+    0xE0 shr                        //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Check function selector
+    __FUNC_SIG(maxOfArray)          //[func_sig(maxOfArray), func_sig]
+    eq                              //[func_sig(maxOfArray) == func_sig] => [(1 or 0)]
+    maxOfArray                      //[jumpdest, (1 or 0)]
+    jumpi                           //[] (if 1, jump to jumpdest, else continue)
+
+    //Revert if function selector is not recognized
+    0x00 dup1 revert
+
+    //Jump label with macro
+    maxOfArray:
+        MAX_OF_ARRAY()
 }
