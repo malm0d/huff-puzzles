@@ -91,7 +91,7 @@
 // CODECOPY                             //[10]  ==> codecopy(0, 9, 10) ==> copies 620caffe3d5260203df3 to memory @ 0x00
 // RETURNDATASIZE                       //[0, 10] ==> offset 0, size 10 bytes      
 // RETURN                               //[] ==> returns 620caffe3d5260203df3 from memory to the EVM,
-//                                      //which will be the new contract's runtime code.
+//                                      //which will be used in the new contract
 //
 //Runtime code: 620caffe3d5260203df3
 // PUSH3 0xcaffe
