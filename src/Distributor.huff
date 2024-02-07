@@ -27,7 +27,7 @@
     jumpi                       //[length, msg.value] (if 1, jump to lenZero, else continue)
 
     //iterate through array and send ether to each
-    0x00                        //[index, length, msg.value]
+    0x00                            //[index, length, msg.value]
     loop:
         dup2                        //[length, index, length, msg.value]
         dup2                        //[index, length, index, length, msg.value]
