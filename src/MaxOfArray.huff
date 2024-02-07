@@ -9,6 +9,7 @@
 
 #define function maxOfArray(uint256[]) payable returns(uint256)
 
+//A much more efficient approach is to make use of `mul`, eg: (i * 0x20) + 0x44
 #define macro MAX_OF_ARRAY() = takes(0) returns(0) {
     //Calldata:
     //0x04: 0x24 -> dynamic offset, eg: 0x20

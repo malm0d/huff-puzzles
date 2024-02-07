@@ -17,7 +17,70 @@
 
  #define function distribute(address[]) payable returns()
 
+ #define macro DISTRIBUTE() = takes(0) returns(0) {
+    callvalue                   //[msg.value]
+    0x24 calldataload           //[length, msg.value]
+
+    //Check if length is 0
+    dup1 iszero                 //[(length == 0), length, msg.value]
+    lenZero                     //[lenZero, (1 or 0), length, msg.value]
+    jumpi                       //[length, msg.value] (if 1, jump to lenZero, else continue)
+
+    //iterate through array and send ether to each
+    0x00                        //[index, length, msg.value]
+    loop:
+        dup2                        //[length, index, length, msg.value]
+        dup2                        //[index, length, index, length, msg.value]
+        eq end                      //[end, (1 or 0), index, length, msg.value]
+        jumpi                       //[index, length, msg.value] (if 1, jump to end, else continue)
+        dup1                        //[index, index, length, msg.value]
+        0x20 mul                    //[(index * 0x20), index, length, msg.value]
+        0x44 add                    //[(i * 0x20) + 0x44, index, length, msg.value]
+        calldataload                //[address, index, length, msg.value]
+        swap1                       //[index, address, length, msg.value]
+        0x01 add                    //[nextIndex, address, length, msg.value]
+        sendEther jump
+
+    //call: [gas, address, value, argsOffset, argsSize, returnOffset, returnSize] -> [success]
+    sendEther:
+        swap3                       //[msg.value, address, length, nextIndex]
+        swap1                       //[address, msg.value, length, nextIndex]
+        0x00 0x00 0x00 0x00         //[aO, aS, rO, rS, address, msg.value, length, nextIndex]
+        swap5                       //[msg.value, aS, rO, rS, address, aO, length, nextIndex]
+        dup7                        //[length, msg.value, aS, rO, rS, address, aO, length, nextIndex]
+        swap1                       //[msg.value, length, aS, rO, rS, address, aO, length, nextIndex]
+        div                         //[(msg.value / length), aS, rO, rS, address, aO, length, nextIndex]
+        swap1                       //[aS, value, rO, rS, address, aO, length, nextIndex]
+        swap4                       //[address, value, 0, 0, 0, 0, length, nextIndex]
+        gas                         //[gas, address, value, 0, 0, 0, 0, length, nextIndex]
+        call                        //[success, length, nextIndex]
+        pop                         //[length, nextIndex]    
+        callvalue                   //[msg.value, length, nextIndex]
+        swap2                       //[nextIndex, length, msg.value]
+        loop jump
+
+    lenZero:
+        0x00 dup1 revert
+
+    end:
+        0x00 dup1 return
+
+ }
 
  #define macro MAIN() = takes(0) returns(0) {
-   
+    //Get fn selector from calldata
+    0x00 calldataload
+    0xE0 shr                    //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Check if function is distribute
+    __FUNC_SIG(distribute)      //[func_sig(distribute), func_sig]
+    eq                          //[func_sig(distribute) == func_sig]
+    distribute                  //[distribute, (1 or 0)]
+    jumpi                       //[] (if 1, jump to distribute, else continue)
+
+    //else revert if function is not recognized
+    0x00 dup1 revert
+
+    distribute:
+        DISTRIBUTE()
  }

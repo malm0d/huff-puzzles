@@ -9,6 +9,7 @@ interface Distributor {
     function distribute(address[] calldata) external payable;
 }
 
+//forge test -vvvv --mc DistributeTest
 contract DistributeTest is Test, NonMatchingSelectorHelper {
     address[16] precompiles_and_foundry_helper_addresses = [
         address(1),
