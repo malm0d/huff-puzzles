@@ -9,6 +9,7 @@ interface Emitter {
     function value(uint256, uint256) external;
 }
 
+//forge test -vvvv --mc EmitterTest
 contract EmitterTest is Test, NonMatchingSelectorHelper {
     Emitter public emitter;
 

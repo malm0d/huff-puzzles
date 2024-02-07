@@ -11,7 +11,37 @@
  
  #define event Value(uint256 indexed, uint256)
 
+ #define macro EMIT_VALUE() = takes(0) returns(0) {
+    //load calldata
+    0x24 calldataload               //[calldata @ 0x24]
+    0x00 mstore                     //[] (store calldata @ 0x24 in memory @ 0x00)
+    0x04 calldataload               //[calldata @ 0x04]
+    __EVENT_HASH(Value)             //[event_sig, calldata @ 0x04]
+    0x20 0x00                       //[0x00, 0x20, event_sig, calldata @ 0x04] (calldata @ 0x24 loaded from memory)
+    log2
+ }
+
 
  #define macro MAIN() = takes(0) returns(0) {
-    
+    //Get function selector from calldata
+    0x00 calldataload               //[calldata @ 0x00]
+    0xE0 shr                        //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Check function selector
+    __FUNC_SIG(value)               //[func_sig(value), func_sig]
+    eq                              //[(func_sig(value)) == func_sig)] => [(1 or 0)]
+    value                           //[value, (1 or 0)]
+    jumpi                           //[] (if 1, jump to jumpdest, else continue)
+
+    //Revert if function selector is not recognized
+    0x00 dup1 revert
+
+    //Jumpdest
+    value:
+        EMIT_VALUE()
  }
+
+//Non-indexed event args need to be store in memory and they are loaded into the LOG opcodes
+//through the offset and size arguments. This is because topics are the indexed arguments,
+//so in this example, we use LOG2 because the only 2 topics are the event_sig and calldata@0x04.
+//and calldata@0x24 is stored in memory because its non-indexed.

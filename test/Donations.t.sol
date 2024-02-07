@@ -9,6 +9,7 @@ interface Donations {
     function donated(address user) external view returns (uint256);
 }
 
+//forge test -vvvv --mc DonationsTest
 contract DonationsTest is Test {
     Donations public donations;
 

@@ -8,9 +8,48 @@
  *  NOTICE: The contract should revert when an unrecognized function is called
  */
 
+//call: [gas, address, value, argsOffset, argsSize, returnOffset, returnSize] -> [success]
+//  gas: amount of gas to send to the sub context to execute. The gas that is not used by the sub context is returned to this one.
+//  address: the account which context to execute.
+//  value: value in wei to send to the account.
+//  argsOffset: byte offset in the memory in bytes, the calldata of the sub context.
+//  argsSize: byte size to copy (size of the calldata).
+//  returnOffset: byte offset in the memory in bytes, where to store the return data of the sub context.
+//  returnSize: byte size to copy (size of the return data).
+
  #define function sendEther(address) payable returns()
 
+ #define macro SEND_ETHER() = takes(0) returns(0) {
+    //Since just sending ether, [argsOffset, argsSize, retOffset, retSize] can be 0x00
+    0x00 0x00 0x00 0x00         //[0x00, 0x00, 0x00, 0x00]
+    callvalue                   //[msg.value, 0x00, 0x00, 0x00, 0x00]
+    0x04 calldataload           //[addressArg, msg.value, 0x00, 0x00, 0x00, 0x00]
+    gas                         //[gas, addressArg, msg.value, 0x00, 0x00, 0x00, 0x00]
+    call                        //[success]
+
+    //return bool
+    0x00 mstore
+    0x20 0x00 return
+ }
 
  #define macro MAIN() = takes(0) returns(0) {
-    
+    //Get function selector from calldata
+    0x00 calldataload
+    0xE0 shr                    //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Check fn selector
+    __FUNC_SIG(sendEther)       //[func_sig(sendEther), func_sig]
+    eq                          //[func_sig(sendEther) == func_sig]
+    sendEther                   //[sendEther, (1, 0)]
+    jumpi                       //[] (if 1, jump to jumpdest, else continue)
+
+    //Revert if function not recognized
+    0x00 dup1 revert
+
+    //Jumpdest
+    sendEther:
+        SEND_ETHER()
  }
+
+ //how would a returndatacopy look like? Assuming if a call/staticcall returns data.
+ //after a call/staticcall, where is that return data stored since its not in memory or stack?

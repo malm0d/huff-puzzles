@@ -11,6 +11,98 @@
 #define function balanceOf(address) payable returns(uint256)
 #define function withdraw(uint256) payable returns()
 
-#define macro MAIN() = takes(0) returns(0) {
+#define macro RECEIVE() = takes(0) returns(0) {
+    callvalue                   //[msg.value]
+    caller                      //[address, msg.value]
+    sload                       //[balance, msg.value]
+    add                         //[balance + msg.value]
+    caller                      //[address, updatedBalance]
+    sstore                      //[] -> address-balance pair in storage
+}
 
+#define macro WITHDRAW() = takes(0) returns(0) {
+    //Check that msg.sender balance is >= amount to withdraw
+    caller sload                //[balance]
+    0x04 calldataload           //[amount, balance]
+    dup1                        //[amount, amount, balance]
+    dup3                        //[balance, amount, amount, balance]
+    lt                          //[(balance < amount), amount, balance]
+    notEnoughBalance            //[notEnoughBalance, (1, 0), amount, balance]
+    jumpi                       //[amount, balance] (if 1, jump to notEnoughBalance, else continue)
+
+    //Update balance
+    swap1                       //[balance, amount]
+    sub                         //[(balance - amount)]
+    caller                      //[address, updatedBalance]
+    sstore                      //[] -> address-balance pair in storage
+
+    //Send ether
+    SEND_ETHER()
+
+    //Return
+    0x00 dup1 return
+
+    //If not enough balance, revert
+    notEnoughBalance:
+        pop pop                 //clear stack    
+        0x20 0x00 mstore
+        0x12 0x20 mstore
+        __RIGHTPAD(0x4e6f7420656e6f7567682062616c616e6365) //"Not enough balance"
+        0x40 mstore
+        0x60 0x00 revert        //(96 bytes)
+}
+
+#define macro SEND_ETHER() = takes(0) returns(0) {
+    //Since just sending ether, [argsOffset, argsSize, retOffset, retSize] can be 0x00
+    0x00 0x00 0x00 0x00         //[0x00, 0x00, 0x00, 0x00]
+    0x04 calldataload           //[withdrawAmt, 0x00, 0x00, 0x00, 0x00]
+    caller                      //[msg.sender, withdrawAmt, 0x00, 0x00, 0x00, 0x00]
+    gas                         //[gas, addressArg, msg.value, 0x00, 0x00, 0x00, 0x00]
+    call                        //[success]
+    // //return bool
+    // 0x00 mstore
+    // 0x20 0x00 return
+}
+
+
+#define macro BALANCEOF() = takes(0) returns(0) {
+    0x04 calldataload           //[address]
+    sload                       //[balance] -> sload(address) -> balance
+    0x00 mstore                 //[]
+    0x20 0x00 return            //return balance
+}
+
+#define macro MAIN() = takes(0) returns(0) {
+    //Get function selector from calldata
+    0x00 calldataload
+    0xE0 shr                    //[func_sig (calldata @ 0x00 >> 0xE0)]
+    dup1                        //[func_sig, func_sig]
+
+    //check fn selector == withdraw
+    __FUNC_SIG(withdraw)        //[func_sig(withdraw), func_sig, func_sig]
+    eq                          //[func_sig(withdraw == func_sig), func_sig]
+    withdraw                    //[withdraw, (1 or 0), func_sig]
+    jumpi                       //[func_sig] (if 1, jump to withdraw, else continue)
+
+    //check fn selector == balanceOf
+    __FUNC_SIG(balanceOf)       //[func_sig(balanceOf), func_sig]
+    eq                          //[func_sig(balanceOf == func_sig)]
+    balanceOf                   //[balanceOf, (1 or 0)]
+    jumpi                       //[] (if 1, jump to balanceOf, else continue)
+
+    //check if msg.value > 0
+    callvalue                   //[msg.value]
+    receive                     //[receive, (n or 0)]
+    jumpi                       //[] (if msg.value > 0, jump to receive, else continue)
+
+    //if none of the above, do nothing and return
+    0x00 dup1 return
+
+    //jumpdest
+    withdraw:
+        WITHDRAW()
+    balanceOf:
+        BALANCEOF()
+    receive:
+        RECEIVE()
 }

@@ -11,6 +11,7 @@ interface BasicBank {
     function withdraw(uint256 amount) external;
 }
 
+//forge test -vvvv --mc BasicBankTest
 contract BasicBankTest is Test {
     BasicBank public basicBank;
 

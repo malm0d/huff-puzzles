@@ -10,6 +10,11 @@
  *  NOTICE: The contract should revert when an unrecognized function is called
  */
 
+ //Calldata:
+ //0x04: 0x24 -> dynamic offset, eg: 0x20
+ //0x24: 0x44 -> length of array
+ //0x44: ...  -> [address1, address2, ...]
+
  #define function distribute(address[]) payable returns()
 
 
