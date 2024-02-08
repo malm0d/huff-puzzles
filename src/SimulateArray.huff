@@ -15,15 +15,200 @@
  *  NOTICE: The contract should revert when an unrecognized function is called
  */
 
+//DYNAMIC Array in storage slot x:
+//0x00: 0x20 -> length of array (at slot x)
+//0x00: ...  -> [value0, value1, ...] (at slot keccak256(abi.encode(x))
+//
+//Actual array location in storage == keccak256(abi.encode(array.slot))
+//
+//From the location, to access items in the array, just have to `add` the index to the location.
+
+//Function definitions
  #define function pushh(uint256 num) payable returns()
  #define function popp() payable returns()
  #define function read(uint256 index) payable returns(uint256)
  #define function length() payable returns(uint256)
  #define function write(uint256 index, uint256 num) payable returns()
 
+//Custom errors
  #define error OutOfBounds()
  #define error ZeroArray()
 
- #define macro MAIN() = takes(0) returns(0) {
-    
+//Constants
+ #define constant ARRAY_SLOT = FREE_STORAGE_POINTER()
+
+//Function macros
+ #define macro PUSHH() = takes(0) returns(0) {
+    //Get hash of array slot to get location of array
+    [ARRAY_SLOT]                            //[array_slot pointer]
+    0x00 mstore                             //[]
+    0x20 0x00                               //[mOffset, size]
+    sha3                                    //[locationHash]
+
+    //Get length of array (sload -> 32 bytes only)
+    [ARRAY_SLOT] sload                      //[arrayLen, locationHash]
+
+    //Get storage slot of new item in array (new index: arrayLen)
+    dup1 swap2                              //[locationHash, arrayLen, arrayLen]
+    add                                     //[newItemLocation, arrayLen]
+
+    //load calldata
+    0x04 calldataload                       //[numArg, newItemLocation, arrayLen]
+    swap1                                   //[newItemLocation, numArg, arrayLen]
+    sstore                                  //[arrayLen] -> write (numArg) to (newItemLocation)
+
+    //Increase length of array by 1
+    0x01 add                                //[newArrayLen]
+    [ARRAY_SLOT]                            //[array_slot pointer, newArrayLen]
+    sstore                                  //[] -> write newArrayLen to array_slot
+
+    //Return
+    0x00 dup1 return
  }
+
+ #define macro POPP() = takes(0) returns(0) {
+    //Get hash of array slot to get location of array
+    [ARRAY_SLOT]                            //[array_slot pointer]
+    0x00 mstore                             //[]
+    0x20 0x00                               //[mOffset, size]
+    sha3                                    //[locationHash]
+
+    //Get length of array (sload -> 32 bytes only)
+    [ARRAY_SLOT]
+    sload                                   //[arrayLen, locationHash]
+    dup1 iszero                             //[(arrayLen == 0), arrayLen, locationHash]
+    zeroArray jumpi                         //[arrayLen, locationHash] (jump if arrayLen == 0, else continue)
+
+    //Get storage slot of LAST item in array (last index: arrayLen - 1)
+    0x01 swap1                              //[arrayLen, 0x01, locationHash]
+    sub                                     //[lastIndex, locationHash]
+    add                                     //[lastItemLocation]   
+
+    //Delete last item (write as 0)
+    0x00                                    //[0, lastItemLocation]
+    swap1 sstore                            //[] -> write 0 to lastItemLocation
+
+    //Reduce length of array by 1
+    0x01 [ARRAY_SLOT] sload                 //[arrayLen, 1]
+    sub                                     //[newArrayLen]
+
+    //Store new length
+    [ARRAY_SLOT]                            //[array_slot pointer, newArrayLen]
+    sstore                                  //[] -> write newArrayLen to array_slot
+
+    //Return
+    0x00 dup1 return
+ }
+
+ #define macro READ() = takes(0) returns(0) {
+    //Get hash of array slot to get location of array
+    [ARRAY_SLOT]                            //[array_slot pointer]
+    0x00 mstore                             //[]
+    0x20 0x00                               //[mOffset, size]
+    sha3                                    //[locationHash]
+
+    //Get length of array (sload -> 32 bytes only)
+    [ARRAY_SLOT]
+    sload                                   //[arrayLen, locationHash]
+
+    //load calldata
+    0x04 calldataload                       //[indexArg, arrayLen, locationHash]
+    
+    //check if index out of bounds (!(arrayLen > index))
+    dup1 dup3                               //[arrayLen, indexArg, indexArg, arrayLen, locationHash]        
+    gt iszero outOfBounds                   //[outofBounds, (1, 0), indexArg, arrayLen, locationHash]
+    jumpi                                   //[indexArg, arrayLen, locationHash] (continue if not out of bounds, else jump)
+
+    //Get storage slot of item at index
+    dup3                                    //[locationHash, indexArg, arrayLen, locationHash]
+    add                                     //[itemLocation, arrayLen, locationHash]
+    sload                                   //[item, arrayLen, locationHash]
+
+    //Store to mem for return
+    0x00 mstore                             //[arrayLen, locationHash]
+    0x20 0x00 return
+ }
+
+ #define macro LENGTH() = takes(0) returns(0) {
+    //Read from storage
+    [ARRAY_SLOT]                            //[array_slot pointer]
+    sload                                   //[actual array]
+
+    //Store to mem for return
+    0x00 mstore                             //[]
+
+    //Return only first 32 bytes
+    0x20 0x00 return                        //only return length of array
+ }
+
+ #define macro WRITE() = takes(0) returns(0) {
+    //Get hash of array slot to get location of array
+    [ARRAY_SLOT]                            //[array_slot pointer]
+    0x00 mstore                             //[]
+    0x20 0x00                               //[mOffset, size]
+    sha3                                    //[locationHash]
+
+    //Get length of array (sload -> 32 bytes only)
+    [ARRAY_SLOT]
+    sload                                   //[arrayLen, locationHash]
+
+    //load calldata index
+    0x04 calldataload                       //[indexArg, arrayLen, locationHash]
+
+    //check if index out of bounds (!(arrayLen > index))
+    dup1 dup3                               //[arrayLen, indexArg, indexArg, arrayLen, locationHash]
+    gt iszero outOfBounds                   //[outofBounds, (1, 0), indexArg, arrayLen, locationHash]
+    jumpi                                   //[indexArg, arrayLen, locationHash] (continue if not out of bounds, else jump)
+
+    //Get storage slot of item at index
+    dup3                                    //[locationHash, indexArg, arrayLen, locationHash]
+    add                                     //[itemLocation, arrayLen, locationHash]
+
+    //load calldata num
+    0x24 calldataload                       //[numArg, itemLocation, arrayLen, locationHash]
+    swap1                                   //[itemLocation, numArg, arrayLen, locationHash]
+    sstore                                  //[arrayLen, locationHash] -> write (numArg) to (itemLocation)
+
+    //Return
+    0x00 dup1 return  
+ }
+
+//Function dispatching
+ #define macro MAIN() = takes(0) returns(0) {
+    //Get fn selector from calldata
+    0x00 calldataload
+    0xE0 shr                                //[func_sig (calldata @ 0x00 >> 0xE0)]
+
+    //Check fn selector
+    dup1 __FUNC_SIG(pushh) eq pushh jumpi   //[func_sig] (jumps to pushh if match)
+    dup1 __FUNC_SIG(popp) eq popp jumpi     //[func_sig] (jumps to popp if match)
+    dup1 __FUNC_SIG(read) eq read jumpi     //[func_sig] (jumps to read if match)
+    dup1 __FUNC_SIG(length) eq length jumpi //[func_sig] (jumps to length if match)
+    dup1 __FUNC_SIG(write) eq write jumpi   //[func_sig] (jumps to write if match)
+
+    //Revert if no match
+    0x00 dup1 revert
+
+    pushh:
+        PUSHH()
+    popp:
+        POPP()
+    read:
+        READ()
+    length:
+        LENGTH()
+    write:
+        WRITE()
+
+    outOfBounds:
+        __ERROR(OutOfBounds)
+        0x00 mstore
+        0x04 0x00 revert
+    
+    zeroArray:
+        __ERROR(ZeroArray)
+        0x00 mstore
+        0x04 0x00 revert
+ }
+
+ 

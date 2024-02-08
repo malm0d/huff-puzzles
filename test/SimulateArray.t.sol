@@ -18,6 +18,7 @@ interface SimulateArray {
     function write(uint256 index, uint256 num) external;
 }
 
+//forge test -vvvv --mc SimulateArrayTest
 contract SimulateArrayTest is Test, NonMatchingSelectorHelper {
     SimulateArray public simulateArray;
 
