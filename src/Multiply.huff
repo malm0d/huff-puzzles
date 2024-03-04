@@ -43,7 +43,7 @@
 
     //Jump label
     //In the case where the second arg is 0, we just multiply anyway
-    //NOTE: We cant use the same "multiply" label as the main macro (actually why?)
+    //NOTE: We cant use the same "multiply" label since its already defined as a function
     multipl:
         mul                 //[arg2 * arg1]
 }

@@ -35,7 +35,7 @@
 // In Soliidty 0.8.20, PUSH0 was introduced to replace PUSH1 0x00.
 // (EIP-3855) https://eips.ethereum.org/EIPS/eip-3855
 //
-// ****Question: should we be using PUSH0 over RETURNDATASIZE???
+// ****Question: should we be using PUSH0 over RETURNDATASIZE??? [depends on EVM version using]
 //-----------------------------------------------------------------------------------
 
 #define function makeContract() payable returns(address)

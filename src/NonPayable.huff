@@ -23,9 +23,6 @@
     0x00 0x00 return     
 }
 
-//Do we actually need to return some result?
-//Is it ok to just put a jump label that does nothing, just for the purpose of jumpi?
-
 //With return value:
     // valueZeroTrue:
     //     0x01
